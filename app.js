@@ -5,11 +5,22 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const dotenv = require('dotenv');
 const path = require('path');
+const indexRouter = require('./routes');
+const userRouter = require('./routes/user');
+const nunjucks = require('nunjucks');
 
 dotenv.config();
 
 const app = express();
 app.set('port', process.env.PORT || 3000);
+
+// 템플릿 엔진 사용 - nunjucks
+app.set('view engine', 'html');
+
+nunjucks.configure('views', {
+   express: app,
+   watch: true,
+});
 
 // 인수로 dev 외에 combined, common, short, tiny 등을 넣을 수 있다
 app.use(morgan('dev'));
@@ -71,10 +82,13 @@ app.use(session({
 // 새로운 요청이 오면 req.data는 초기화 된다. 다른 미들웨어와 겹치지 않게 하는 것이 중요 ex)body를 속성으로하면 body-parser와 기능이 겹치게된다.
 // app.set을 사용하지 않는 이유는 express 전역적으로 사용되는 메서드기 때문에 개별 데이터에 관해서는 직접 req 객체로 전달하는게 좋다.
 
-app.use((req, res, next) => {
-    console.log('모든 요청에 다 실행됩니다.');
-    next();
-});
+/*
+* app.use((req, res, next) => {
+*     console.log('모든 요청에 다 실행됩니다.');
+*     next();
+* });
+*/
+
 
 // 미들웨어 디자인 패턴, 미들웨어 안에 미들웨어를 넣을 경우 기존 미들웨어의 기능을 확장할 수 있다.
 // 가령 조건에 따른 분기처리 등.
@@ -94,6 +108,14 @@ app.use((req, res, next) => {
 * app.use('/abc', 미들웨어) : abc로 시작하는 요청에서 미들웨어 실행
 * app.post('/abc', 미들웨어) : abc로 시작하는 POST 요청에서 미들웨어 실행
  */
+
+app.use('/', indexRouter);
+app.use('/user', userRouter);
+app.use((req, res, next) => {
+    const error = new Error(`${req.method} ${req.url} 라우터가 없습니다.`);
+    error.status = 404;
+    next(error);
+});
 
 const multer = require('multer');
 const fs = require('fs');
@@ -139,9 +161,11 @@ app.get('/', (req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(500).send(err.message);
-})
+    res.locals.message = err.message;
+    res.locals.error = process.env.NODE_ENV !== 'production' ? err: {};
+    res.status(err.status || 500);
+    res.render('error');
+});
 
 app.listen(app.get('port'), () => {
    console.log(app.get('port'), '번 포트에서 대기 중');

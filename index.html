@@ -2,10 +2,15 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>익스프레스 서버</title>
+    <title>nunjucks-test</title>
 </head>
 <body>
-    <h1>익스프레스</h1>
-    <p>배워봅시다.</p>
+    <h1>{{title}}</h1>
+    <button class="{{title}}" type="submit">전송</button>
+    <input placeholder="{{title}} 연습" />
+    <!-- 내부에 변수 선언하는 방식-->
+    {% set node = 'Node.js' %}
+    {% set js = 'JS' %}
+    <p>{{node}} 와 {{js}}</p>
 </body>
 </html>
